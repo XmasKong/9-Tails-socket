@@ -1,0 +1,80 @@
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.Queue;
+import java.util.Timer;
+import java.util.TimerTask;
+
+import org.json.simple.JSONObject;
+
+/**
+ * 실제 처리할 작업을 나타내는 클래스
+ * @author XmasKong
+ */
+public class Request extends TimerTask {
+	private String name;	//쓰레드 이름
+	private int cnt;		//각각의 쓰레드별 호출횟수
+	private Queue<ChatServlet.ChatWebSocket> webSockets;
+	
+	public Request(String name, int cnt, Queue<ChatServlet.ChatWebSocket> webSockets) {
+		this.name = name;
+		this.cnt = cnt;
+		this.webSockets = webSockets;
+	}
+
+	/**
+	 * 작업 실행
+	 */
+	public void execute() {
+		
+		
+		//메소드를 주기적으로 실행하기 위한 Timer 선언
+		Timer timer = new Timer();
+		
+		//1초 간격으로 run 메소드를 실행
+		timer.schedule(new Request(name, cnt, webSockets), 1000);
+	}
+
+	@Override
+	public void run() {
+		new AuctionList();
+		
+		Map<Integer, AuctionBean> auctionList = AuctionList.auctionList;
+		
+		JSONObject jo = new JSONObject();	
+		
+    	Iterator<Integer> iterator = auctionList.keySet().iterator();
+    	
+    	ArrayList keys = new ArrayList();
+    	
+    	while(iterator.hasNext()) {
+			int key = iterator.next();
+			AuctionBean ab = auctionList.get(key);
+			
+			Map<String, Object> jm = new HashMap<String, Object>();
+			
+			jm.put("member_id", ab.getAuction_member_id());
+			jm.put("now_price", ab.getAuction_now_price());
+			jm.put("duration", ab.getAuction_duration());
+			
+			jo.put("auc"+key, jm);
+			keys.add(key);
+		}
+    	jo.put("auctionsize", auctionList.size());
+    	jo.put("auctionkeys", keys);
+    	
+    	System.out.println(jo.toString());
+    	
+		for (ChatServlet.ChatWebSocket member : webSockets) {
+		    try
+		    {
+		      
+		      member.connection.sendMessage(jo.toString());
+		    } catch(IOException e) {
+		    	e.printStackTrace();
+		    }
+		}
+	}
+}

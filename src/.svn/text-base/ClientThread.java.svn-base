@@ -1,0 +1,34 @@
+import java.util.Queue;
+
+/**
+ * 클라이언트로부터 요청을 받아
+ * 채널에 업무 요청을 전달하는 쓰레드
+ * WebSocket의 OnMessage와 유사
+ * @author XmasKong
+ *
+ */
+public class ClientThread extends Thread {
+	private String name = null;
+	private Channel channel = null;		//업무를 전달할 채널
+	private Queue<ChatServlet.ChatWebSocket> webSockets;
+	
+	public ClientThread(String name, Channel channel, Queue<ChatServlet.ChatWebSocket> webSockets) {
+		this.name = name;
+		this.channel = channel;			//채널 설정
+		this.webSockets = webSockets;
+	}
+	
+	public void run() {
+		try {
+			for (int i = 0; true; i++) {
+				//요청 업무를 Request에 할당
+				Request request = new Request(name, i, webSockets);
+				//채널에 Request를 요청
+				channel.putRequest(request);
+				Thread.sleep(1000);
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
+}

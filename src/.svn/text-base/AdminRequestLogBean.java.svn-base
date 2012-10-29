@@ -1,0 +1,55 @@
+
+
+/**
+ * @author Chloe 최선아
+ * Description
+ * 	variables from admin_request_log table
+ */
+public class AdminRequestLogBean {
+	private int admin_request_log_num;
+	private String admin_request_log_start;
+	private String admin_request_log_end;
+	private String member_id;
+	private String admin_id;
+	private String admin_request_log_content;
+	
+	
+	public int getAdmin_request_log_num() {
+		return admin_request_log_num;
+	}
+	public void setAdmin_request_log_num(int admin_request_log_num) {
+		this.admin_request_log_num = admin_request_log_num;
+	}
+	public String getAdmin_request_log_start() {
+		return admin_request_log_start;
+	}
+	public void setAdmin_request_log_start(String admin_request_log_start) {
+		this.admin_request_log_start = admin_request_log_start;
+	}
+	public String getAdmin_request_log_end() {
+		return admin_request_log_end;
+	}
+	public void setAdmin_request_log_end(String admin_request_log_end) {
+		this.admin_request_log_end = admin_request_log_end;
+	}
+	public String getMember_id() {
+		return member_id;
+	}
+	public void setMember_id(String member_id) {
+		this.member_id = member_id;
+	}
+	public String getAdmin_id() {
+		return admin_id;
+	}
+	public void setAdmin_id(String admin_id) {
+		this.admin_id = admin_id;
+	}
+	public String getAdmin_request_log_content() {
+		return admin_request_log_content;
+	}
+	public void setAdmin_request_log_content(String admin_request_log_content) {
+		this.admin_request_log_content = admin_request_log_content;
+	}
+	
+	
+}

@@ -1,0 +1,72 @@
+<%@ page language="java" contentType="text/html; charset=EUC-KR"
+    pageEncoding="EUC-KR"%>
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=EUC-KR">
+<title>Web Socket Example</title>
+<script>
+var wsUri = "ws://localhost:8888/9-Tails-socket/chat";//"ws://echo.websocket.org/";
+window.onload=function(){
+	init();
+}
+
+function init(){
+	initWebSocket(); 
+}
+
+var websocket;
+function initWebSocket(){ 
+	 websocket = new WebSocket(wsUri); 
+	 websocket.onopen = function(evt) { onOpen(evt) }; 
+	 websocket.onclose = function(evt) { onClose(evt) }; 
+	 websocket.onmessage = function(evt) { onMessage(evt) }; 
+	 websocket.onerror = function(evt) { onError(evt) }; 
+}
+
+function sendMsg(){
+	 if(websocket.readyState==3){
+		 alert("not open");
+		 initWebSocket();
+	 }
+	 var msg=document.FmChat.msg.value;
+	 doSend(msg); 
+	 document.FmChat.msg.value="";
+}
+
+function onOpen(evt){ 
+	writeToScreen("CONNECTED"); 
+} 
+
+function onClose(evt){ 
+ 	writeToScreen("DISCONNECTED"); 
+}
+
+function onMessage(evt){ 
+	 writeToScreen('RESPONSE: ' + evt.data+''); 
+}
+
+function onError(evt){ 
+ 	writeToScreen('ERROR: ' + evt.data); 
+}
+
+function doSend(message){ 
+	writeToScreen("SENT: " + message); 
+	websocket.send(message); 
+}
+
+function writeToScreen(message){ 
+	 var pre =document.getElementById("msg");
+	 pre.innerHTML += message+"<BR />"; 
+}
+</script>
+</head>
+<body>
+Jetty JSP WebSocket TEST
+<form name="FmChat">
+	<input type=text name="msg" value="" />
+	<input type=button name="bt1" value="Send" onClick="sendMsg()" />
+</form>
+<div id="msg"></div>
+</body>
+</html>

@@ -1,0 +1,21 @@
+/**
+ * 루프를 돌면서 채널에서 작업을 가져와서 처리하는 클래스
+ * @author XmasKong
+ */
+public class WorkerThread extends Thread {
+	private Channel channel;
+	
+	public WorkerThread(String name, Channel channel) {
+		super(name);				
+		this.channel = channel;
+	}
+	
+	public void run( ) {
+        while(true) {
+        	//해당 채널에서 처리할 작업을 가져옴
+            Request request = channel.takeRequest( );
+            //실제 처리할 작업 실행
+            request.execute( );
+        }
+    }
+}

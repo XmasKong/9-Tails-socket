@@ -1,0 +1,115 @@
+import java.io.IOException;
+import java.util.Set;
+import java.util.concurrent.CopyOnWriteArraySet;
+
+import javax.servlet.ServletException;
+import javax.servlet.annotation.WebServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+import org.eclipse.jetty.websocket.WebSocket;
+import org.eclipse.jetty.websocket.WebSocketFactory;
+import org.eclipse.jetty.websocket.WebSocketServlet;
+
+/**
+ * @author chloe
+ * Description
+ * 	채팅방(adminRequestUserStep3.jsp)이 열리면 실행되는 class
+ * 	ChatWebSocket 오픈하고, AddMonitiorRequest 생성자 호출(채팅방 관리)	
+ */
+@WebServlet(urlPatterns = "/requestChat", asyncSupported = true)
+public class RequestChatServlet extends WebSocketServlet
+{
+	private WebSocketFactory _wsFactory;
+	private final Set _members = new CopyOnWriteArraySet();
+	private Channel channel = null;
+	private String room;//map의 key 역할을 할 채팅방 id
+	private String adminId;
+	
+	  // GET method is used to establish a stream connection
+    @Override
+    protected void doGet(HttpServletRequest request, HttpServletResponse response)
+                    throws ServletException, IOException {    	
+    }
+
+    // POST method is used to communicate with the server
+    @Override
+    protected void doPost(HttpServletRequest request, HttpServletResponse response)
+                    throws ServletException, IOException {
+    }
+
+   
+    @Override
+    public WebSocket doWebSocketConnect(HttpServletRequest request, String protocol) {
+    	channel = new Channel(5);
+    	channel.startWorkers();
+    	
+    	/*접속할 채팅방 지정
+    	채팅방ID: room+접속하는 유저의 member_num*/
+        room="chat"+request.getParameter("member_num");
+        System.out.println("채팅방(room) ID : " + room);
+        adminId = request.getParameter("admin_id");
+        return new ChatWebSocket();
+    }
+
+    //DB insert를 위한 채팅 내용 저장용
+    private String messageStack="**관리자 채팅(1:1)을 시작합니다.**";
+    class ChatWebSocket implements WebSocket.OnTextMessage{
+		Connection connection;
+		
+		@Override
+		public void onOpen(Connection connection) {
+		        this.connection = connection;
+		        _members.add(this);
+		        new AddMonitiorRequest(room, this);
+		}
+		
+		@Override
+		public void onClose(int closeCode, String message) {
+		        _members.remove(this);
+		        AddMonitiorRequest.monitoringPool.get(room).remove(this);
+		        if(AddMonitiorRequest.monitoringPool.get(room)==null){
+		        	AddMonitiorRequest.monitoringPool.remove(room);
+		        	System.out.println("room("+room+")에 접속 중인 chatSocket List : 아무도 없음");
+		        }
+		        else{
+		        	System.out.println("room("+room+")에 접속 중인 chatSocket List : " + AddMonitiorRequest.monitoringPool.get(room).toString());
+		        }
+		        
+		        /*관리자 로그 요청 DB에 message 스택 저장*/
+		        if(AddMonitiorRequest.monitoringPool.get(room).size()==1){
+		        	int memNum = Integer.parseInt(room.substring(4));
+		        	AdminRequestLogBean arlb;
+		        	RequestDao sqlExecute = RequestDao.getInstance();
+		        	arlb = sqlExecute.getAdminRequest(memNum, adminId);
+		        	
+		        	String sql = "insert into admin_request_log values(admin_request_log_seq.nextval, to_date('"
+		        			+ arlb.getAdmin_request_log_start() + "' , 'yyyy-mm-dd hh24:mi:ss'), sysdate, '"
+		        			+ arlb.getMember_id() + "', '" + arlb.getAdmin_id() + "', '" + messageStack + "')";
+		        	sqlExecute.setRequest(sql);
+		        	System.out.println("[RequestChatServlet.java] 관리자 요청 종료 & messageStack 저장 완료");
+		        }
+		}
+		
+		
+		@Override
+		public void onMessage(String msg) {
+			/*채팅 시 사용*/
+			System.out.println("[RequestChatServlet.java] msg from client : " + msg);
+			for (RequestChatServlet.ChatWebSocket member : AddMonitiorRequest.monitoringPool.get(room))
+		    {
+		        try
+		        {
+		        	member.connection.sendMessage(msg);
+		        	messageStack += "@";
+		        	messageStack += msg;
+		        	/*System.out.println("[RequestChatServlet.java] messageStack : " + messageStack);*/
+		        }
+		        catch(IOException e)
+		        {
+		        	e.printStackTrace();
+		        }
+		    }
+		}//onMessage
+    }//inner Class
+}

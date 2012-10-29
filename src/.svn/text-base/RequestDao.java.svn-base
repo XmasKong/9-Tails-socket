@@ -1,0 +1,120 @@
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+
+/**
+ * @author Chloe 
+ * Description
+ * 	admin_request_log 테이블 채우기 위한 데이터 검색용
+ */
+public class RequestDao {
+
+	private static RequestDao instance = new RequestDao();
+	public static RequestDao getInstance() {
+		return instance;
+	}
+	private static Connection connRequest = null;
+	ResultSet rs = null;
+	PreparedStatement pstmt = null;
+	
+	// DB Connection OPEN
+	private Connection getConnection() {
+		String driver = "oracle.jdbc.driver.OracleDriver";
+		String url = "jdbc:oracle:thin:@203.233.196.163:1521:xe";
+		String id = "ora2nd";
+		String password = "test";
+
+		try{
+				Class.forName(driver);
+				connRequest = DriverManager.getConnection(url, id, password);
+		}
+		catch (Exception e) {
+			e.printStackTrace();
+		}
+		return connRequest;
+	}
+	
+	
+	// DB Connection CLOSE
+		public static void freeConnection() {
+			try {
+				if (connRequest != null) {
+					connRequest.close();
+				}
+			} catch (SQLException e) {
+				e.printStackTrace();
+			}
+		}
+	
+
+		/*DML : select */
+		public AdminRequestLogBean getAdminRequest(int memNum, String adminId) {
+			AdminRequestLogBean arlb = new AdminRequestLogBean();
+
+			connRequest = getConnection();
+			try {
+		
+				String sql = "select * from admin_request, member"
+						+ " where admin_request.member_num = member.member_num"
+						+ " and member.member_num=" + memNum;
+				pstmt = connRequest.prepareStatement(sql);
+				rs = pstmt.executeQuery();
+
+				if (rs.next()) {
+					while (rs.next()) {
+						arlb.setAdmin_request_log_content(rs
+								.getString("admin_request_content"));
+						arlb.setAdmin_request_log_start(rs
+								.getString("admin_request_time"));
+						arlb.setMember_id(rs.getString("member_id"));
+						arlb.setAdmin_id(adminId);
+					}
+				}
+			} catch (Exception e) {
+				System.out.println("오류" + e.toString());
+			} finally {
+				try {
+					if (rs != null) {
+						rs.close();
+					}
+					if (pstmt != null) {
+						pstmt.close();
+					}
+					freeConnection();
+				} catch (SQLException e) {
+				}
+			}
+			return arlb;
+		}
+		
+		
+		/*DML : insert, update, delete*/
+		public int setRequest(String sqlStatement) {
+			connRequest = getConnection();
+			int cnt = -1;
+
+			if (connRequest != null) {
+				try {
+					connRequest.setAutoCommit(false);
+					pstmt = connRequest.prepareStatement(sqlStatement);
+
+					cnt = pstmt.executeUpdate();
+
+					connRequest.commit();
+				} catch (SQLException e) {
+					System.out.println("SQL오류" + e.toString());
+
+				} finally {
+					try {
+						if (pstmt != null)
+							pstmt.close();
+						freeConnection();
+					} catch (SQLException e) {
+					}
+				}
+			}
+			return cnt;
+		}
+}

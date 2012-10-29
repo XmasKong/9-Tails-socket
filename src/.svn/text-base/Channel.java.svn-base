@@ -1,0 +1,89 @@
+/**
+ * 요청과 처리를 채널별로 나눈 클래스
+ * @author XmasKong
+ *
+ */
+public class Channel {
+	private static final int MAX_REQUEST = 100;	//요청 큐 최대 크기
+	private Request[] requestQueue;				//요청 큐 리스트
+	private int tail;							//큐의 끝(모든 큐가 꺼내어지면 0으로 이동)
+	private int head;							//큐의 시작
+	private int count;							//요청 횟수
+	private WorkerThread[] threadPool;			//쓰레드 풀
+	
+	/**
+	 * 초기화
+	 */
+	public Channel(int threads) {
+		this.requestQueue = new Request[MAX_REQUEST];
+		this.head = 0;
+		this.tail = 0;
+		this.count = 0;
+		//작업 쓰레드 생성
+		this.threadPool = new WorkerThread[threads];
+		for(int i = 0; i < threadPool.length; i++) {
+			threadPool[i] = new WorkerThread("Worker - " + i , this);
+		}
+	}
+	
+	/**
+	 * 작업 쓰레드 시작
+	 */
+	public void startWorkers() {
+		for(int i = 0; i < threadPool.length; i++) {
+			threadPool[i].start();
+		}
+	}
+	
+	/**
+	 * 요청 메서드 넣기(ClientThread에서 주기적으로 호출)
+	 * @param request
+	 */
+	public synchronized void putRequest(Request request) {
+		//현재 요청 갯수가 Queue 리스트보다 클 경우 대기
+		//즉, 이미 Queue가 진행 중인 다른 요청으로 인해 꽉 차 있을 경우
+		while(count >= requestQueue.length) {
+			try {
+				wait();
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+		}
+		//요청을 받아들일 공간이 Queue에 있을 경우
+		//요청을 Queue 리스트에 추가
+		requestQueue[tail] = request;
+        tail = (tail+1) % requestQueue.length;
+        count++ ;
+        
+        //쓰레드를 모두 깨움
+        notifyAll( );
+	}
+
+	/**
+	 * 요청 메시지 처리(WorkThread에서 주기적으로 호출)
+	 * @return
+	 */
+	public synchronized Request takeRequest() {
+		//현재 요청이 없을 때 대기
+		while(count <= 0) {
+			try {
+				wait();
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+		}
+		Request request = requestQueue[head];
+		//head 위치 조정
+		//head가 끝(index:99)까지 오면 0으로 초기화
+		//head = (99+1) % 100 = 0
+		head = (head+1) %  requestQueue.length; 
+		
+		//실행한 작업 요청 갯수에서 제외
+		count--;
+		
+		//쓰레드를 모두 깨움
+		notifyAll();
+		
+		return request;
+	}
+}

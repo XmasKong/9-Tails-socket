@@ -1,0 +1,41 @@
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
+
+/**
+ * @author chloe 최선아
+ * Description
+ *	채팅방 생성 및 채팅방 별로 접속한 유저 추가시킴
+ */
+public class AddMonitiorRequest {
+	/*--아래 소스코드 사용함--
+	요청 처리 별 웹 소켓리스트를 관리할 monitoringPool
+	예:Map<채팅룸 ID,웹 소켓리스트>*/
+	static Map<String, ArrayList<RequestChatServlet.ChatWebSocket>> monitoringPool = new HashMap<String, ArrayList<RequestChatServlet.ChatWebSocket>>();
+	private String room;
+	private RequestChatServlet.ChatWebSocket chatSocket;
+	
+	public AddMonitiorRequest(String room, RequestChatServlet.ChatWebSocket chatSocket) {
+		this.room = room;
+		this.chatSocket = chatSocket;
+		
+		ArrayList<RequestChatServlet.ChatWebSocket> temp = monitoringPool.get(room);
+		if(temp == null) {
+			/*해당 소켓이 처음 요청하는 업무일 때, monitoringPool을 새로 생성*/
+			temp = new ArrayList<RequestChatServlet.ChatWebSocket>();
+			temp.add(chatSocket);
+		}
+		else {
+			/*이미 소켓리스트가 존재하는 요청일 때, 소켓리스트에 요청 소켓을 추가*/
+			boolean check = true;
+			for (RequestChatServlet.ChatWebSocket member : temp) {
+				if(member == chatSocket)
+					check = false;
+			}
+			if(check)
+				temp.add(chatSocket);
+		}
+		monitoringPool.put(room, temp);
+		System.out.println("room("+room+")에 접속 중인 chatSocket List : " + monitoringPool.get(room).toString());
+	}//constructor
+}//class
